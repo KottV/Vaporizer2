@@ -16,3 +16,4 @@ MacOS Build Chain.docx
 *.au
 *.aax
 .DS_Store
+/.clangd
