@@ -2,12 +2,16 @@
 
 cmake_minimum_required(VERSION 3.15)
 
+file(STRINGS VERSION PLUGIN_VERSION)
 option(USE_SYSTEM_JUCE "Use system installation of juce" OFF)
 set(VST2_SDK_LOCATION "" CACHE STRING "Steinberg VST2 SDK directory for non-FOSS builds")
 set(AAX_SDK_LOCATION "" CACHE STRING "Avid AAX SDK directory for non-FOSS builds")
 set(ASIO_SDK_LOCATION "" CACHE STRING "Steinberg ASIO SDK directory for non-FOSS builds")
+option(BUILD_AVX "Build AVX optimized code" ON)
 
 project("VASTvaporizer2")
+
+message("Building VAST Dynamics Vaporizer2 plugin, version ${PLUGIN_VERSION}")
 
 if(NOT USE_SYSTEM_JUCE)
   message(STATUS "Using JUCE from source tree")
@@ -33,7 +37,7 @@ endif()
 list(APPEND PLUGIN_FORMATS VST3 AU Standalone LV2)
 
 juce_add_plugin(VASTvaporizer2
-  VERSION "3.3.5"
+  VERSION ${PLUGIN_VERSION}
   BUNDLE_ID "com.vastdynamics.VAST2"
   COMPANY_NAME "VAST Dynamics"
   COMPANY_COPYRIGHT "VAST Dynamics"
@@ -66,16 +70,21 @@ target_compile_definitions(VASTvaporizer2
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_WEB_BROWSER=0
     JUCE_WIN_PER_MONITOR_DPI_AWARE=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 
 if (WIN32)
-  target_compile_definitions(VASTvaporizer2 PRIVATE _WIN64 _WIN64BIT SSE_AVX=AVX)
+  if (BUILD_AVX)
+    target_compile_definitions(VASTvaporizer2 PRIVATE _WIN64 _WIN64BIT)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
+  endif(BUILD_AVX)
+
   if (ASIO_SDK_LOCATION)
     message( STATUS "Including ASIO from ${ASIO_SDK_LOCATION}")
     target_compile_definitions(VASTvaporizer2 PRIVATE JUCE_ASIO=1)
     target_include_directories(VASTvaporizer2 PRIVATE ${ASIO_SDK_LOCATION}/common)
-  endif()
-endif()
+  endif(ASIO_SDK_LOCATION)
+endif(WIN32)
 
 target_sources(VASTvaporizer2
   PRIVATE
