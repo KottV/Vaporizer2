@@ -1578,6 +1578,12 @@ void VASTAudioProcessor::setParameterText(StringRef parName, StringRef textVal, 
 	}
 }
 
+String VASTAudioProcessor::getDefaultUserDirPath()
+{
+		return  juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+		.getChildFile("Vaporizer2").getFullPathName().toStdString();
+}
+
 String VASTAudioProcessor::getVSTPath() {
 	FileSearchPath defaultVSTPaths;
 	const String programFiles(File::getSpecialLocation(File::globalApplicationsDirectory).getFullPathName());
@@ -1603,7 +1609,7 @@ String VASTAudioProcessor::getVSTPath() {
 	return "";
 
 #elif JUCE_LINUX
-	return  juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Vaporizer2").getFullPathName().toStdString();
+	return "/tmp/.Vaporizer2/";
 
 #elif JUCE_WINDOWS	
 	String Vaporizer2InstallPath = "";
@@ -1704,7 +1710,7 @@ String VASTAudioProcessor::getVSTPathAlternative() {
 	return "";
 
 #elif JUCE_LINUX
-	return "~/.Vaporizer2/";
+	return "/tmp/.Vaporizer2/";
 
 #elif JUCE_WINDOWS	
 	const String currentDll(File::getSpecialLocation(File::currentApplicationFile).getFullPathName());
@@ -2205,41 +2211,20 @@ bool VASTAudioProcessor::writeSettingsToFile() {
 
 String VASTAudioProcessor::getSettingsFilePath(bool read, bool &migrate_legacy) {
 	const String settingsFile = "VASTvaporizerSettings.xml";
-#ifdef JUCE_WINDOWS
-	//JUCE>> File::getSpecialLocation(File::commonApplicationDataDirectory) ="C:\ProgramData"
-	String filename = File::getSpecialLocation(File::commonApplicationDataDirectory).getFullPathName() + "\\Vaporizer2\\" + settingsFile;
-	if (read) {
-		if (!File(filename).existsAsFile()) {
-			File(filename).create(); //recursively create also directories
-			File(filename).deleteFile();
-			filename = getVSTPath() + "\\VASTvaporizerSettings.xml"; //try compatibility
-			migrate_legacy = true;
-		}
-	}
-#elif JUCE_MAC
-	//JUCE>> File::getSpecialLocation(File::commonApplicationDataDirectory) ="/Library"
-	String filename = File::getSpecialLocation(File::commonApplicationDataDirectory).getFullPathName() + "/Application Support/Vaporizer2/" + settingsFile;
-	if (read) {
-		if (!File(filename).existsAsFile()) {
-			File(filename).create(); //recursively create also directories
-			File(filename).deleteFile();
-			filename = getVSTPath() + "/VASTvaporizerSettings.xml"; //try compatibility
-			migrate_legacy = true;
-		}
-	}
-#elif JUCE_LINUX
 	//JUCE>> File::getSpecialLocation(File::commonApplicationDataDirectory) ="/opt"
-	String filename = File::getSpecialLocation(File::commonApplicationDataDirectory).getFullPathName() + "/Vaporizer2/" + settingsFile;
+	String filename = File::getSpecialLocation(File::userApplicationDataDirectory).getChildFile("Vaporizer2").getChildFile(settingsFile).getFullPathName();
 	if (read) {
 		if (!File(filename).existsAsFile()) {
 			File(filename).create(); //recursively create also directories
 			File(filename).deleteFile();
+#if defined JUCE_WINDOWS
+			filename = getVSTPath() + "\\VASTvaporizerSettings.xml"; //try compatibility
+#else
 			filename = getVSTPath() + "/VASTvaporizerSettings.xml"; //try compatibility
+#endif
 			migrate_legacy = true;
 		}
 	}
-#endif
-
 	return filename;
 }
 
@@ -2812,21 +2797,24 @@ void VASTAudioProcessor::initSettings() {
 	if (lSuccess == false) {
 		loadDefaultMidiMapping();
 
+	juce::String defaultUserDir = getDefaultUserDirPath();
 #ifdef JUCE_WINDOWS
-		m_UserPresetRootFolder = getVSTPath() + "\\Presets"; //will be overwritten by settings if set
-		m_UserWavetableRootFolder = getVSTPath() + "\\Tables"; // root folder for wavetables
-		m_UserWavRootFolder = getVSTPath() + "\\Noises"; // root folder for WAV files
+		m_UserPresetRootFolder = defaultUserDir + "\\Presets"; //will be overwritten by settings if set
+		m_UserWavetableRootFolder = defaultUserDir + "\\Tables"; // root folder for wavetables
+		m_UserWavRootFolder = defaultUserDir + "\\Noises"; // root folder for WAV files
 #else
-		m_UserPresetRootFolder = getVSTPath() + "/Presets"; //will be overwritten by settings if set
-		m_UserWavetableRootFolder = getVSTPath() + "/Tables"; // root folder for wavetables
-		m_UserWavRootFolder = getVSTPath() + "/Noises"; // root folder for WAV files
+		m_UserPresetRootFolder = defaultUserDir + "/Presets"; //will be overwritten by settings if set
+		m_UserWavetableRootFolder = defaultUserDir + "/Tables"; // root folder for wavetables
+		m_UserWavRootFolder = defaultUserDir + "/Noises"; // root folder for WAV files
 #endif
 		m_iUserTargetPluginWidth = m_iDefaultPluginWidth; //default size from projucer
 		m_iUserTargetPluginHeight = m_iDefaultPluginHeight; //default size from projucer
 
-		if(!File(m_UserPresetRootFolder).exists())
+		if(!File(defaultUserDir).exists())
 		{
 			File(m_UserPresetRootFolder).createDirectory();
+			File(m_UserWavetableRootFolder).createDirectory();
+			File(m_UserWavRootFolder).createDirectory();
 		}
 
 		writeSettingsToFile();

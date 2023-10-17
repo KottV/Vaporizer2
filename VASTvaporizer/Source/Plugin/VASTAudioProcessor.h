@@ -201,6 +201,7 @@ public:
 	static String getVSTPath();
 	static String getVSTPathAlternative();
 	static String getSettingsFilePath(bool read, bool& migrate_legacy);
+	static String getDefaultUserDirPath();
 	void loadPreset(int index);	
 	bool loadUserPatchMetaData(File file, VASTPresetElement& lPreset);	
 	void randomizePatch();
