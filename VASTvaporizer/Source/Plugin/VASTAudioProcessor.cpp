@@ -2193,7 +2193,6 @@ bool VASTAudioProcessor::writeSettingsToFile() {
 
 	bool migrate_legacy = false;
 	String filename = getSettingsFilePath(false, migrate_legacy); //write always new path
-
 	File file(filename);
 	file.deleteFile();
 	FileOutputStream out(file);
@@ -2215,8 +2214,8 @@ String VASTAudioProcessor::getSettingsFilePath(bool read, bool &migrate_legacy) 
 	String filename = File::getSpecialLocation(File::userApplicationDataDirectory).getChildFile("Vaporizer2").getChildFile(settingsFile).getFullPathName();
 	if (read) {
 		if (!File(filename).existsAsFile()) {
-			File(filename).create(); //recursively create also directories
-			File(filename).deleteFile();
+			File(filename).getParentDirectory().createDirectory(); //recursively create also directories
+			//File(filename).deleteFile();
 #if defined JUCE_WINDOWS
 			filename = getVSTPath() + "\\VASTvaporizerSettings.xml"; //try compatibility
 #else
