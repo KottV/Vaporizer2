@@ -4,7 +4,7 @@ PLUGIN_VERSION=$(cat VERSION)
 
 if [ "$1" = "ci" ]; then
     sudo apt-get update
-    sudo apt-get install freeglut3-dev g++ libasound2-dev libfreetype6-dev libjack-jackd2-dev libx11-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev mesa-common-dev
+    sudo apt-get install freeglut3-dev g++ libasound2-dev libfreetype6-dev libjack-jackd2-dev libx11-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev mesa-common-dev libfftw3-dev
 
     git submodule update --init --recursive
 fi
