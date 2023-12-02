@@ -17,7 +17,7 @@ jobs:
 
     - name: Build
       run: |
-        ./build_linux.sh archive
+        ./build_linux.sh ci archive
       shell: bash
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
