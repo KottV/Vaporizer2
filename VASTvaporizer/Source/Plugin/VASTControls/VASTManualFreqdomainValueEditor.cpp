@@ -21,7 +21,7 @@
 #include "../VASTAudioProcessor.h"
 #include "../VASTControls/VASTParameterSlider.h"
 #include "../VASTWTEditor/VASTFreqDomainViewport.h"
-#include "../VASTWavetableEditorComponent.h"
+#include "../VASTWaveTableEditorComponent.h"
 //[/Headers]
 
 #include "VASTManualFreqdomainValueEditor.h"
@@ -226,6 +226,18 @@ void VASTManualFreqdomainValueEditor::textEditorEscapeKeyPressed(TextEditor& tex
 	{
 		c_Cancel->triggerClick();
 	}
+}
+
+void VASTManualFreqdomainValueEditor::setTextMagnitude(String text) {
+    c_textEditorMagnitude->setText(text, NotificationType::sendNotification);
+    c_textEditorMagnitude->applyFontToAllText(((VASTLookAndFeel*)&getLookAndFeel())->getTextEditorFont(*c_textEditorMagnitude));
+    c_textEditorMagnitude->selectAll();
+}
+
+void VASTManualFreqdomainValueEditor::setTextPhase(String text) {
+    c_textEditorPhase->setText(text, NotificationType::sendNotification);
+    c_textEditorPhase->applyFontToAllText(((VASTLookAndFeel*)&getLookAndFeel())->getTextEditorFont(*c_textEditorPhase));
+    c_textEditorPhase->selectAll();
 }
 
 //[/MiscUserCode]
