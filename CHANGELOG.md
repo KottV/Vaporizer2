@@ -1,4 +1,3 @@
-3.4.0
 ## [3.4.0] - 2023-12-02
 Please make sure that you have uninstalled older versions of Vaporizer2 or have manually deleted all VASTvaporizer2*.* plugins on your system before installing. Due to filename changes otherwise it wouild lead to mixed versions installed. Make sure that the installed plugin in your DAW shows version number 3.4.0 on the top right.
 
