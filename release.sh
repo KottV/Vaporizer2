@@ -2,4 +2,4 @@
 set -x
 PLUGIN_VERSION=$(cat VERSION)
 
-gh release create "$PLUGIN_VERSION" ./Binaries/*.tar.gz
+gh release create "$PLUGIN_VERSION" -F CHANGELOG.md ./Binaries/*.tar.gz
