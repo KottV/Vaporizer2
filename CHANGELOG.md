@@ -1,4 +1,4 @@
-## [3.4.0] - 2023-12-10
+## [3.4.3] - 2023-12-10
 - Removed optional moduleinfo.json from VST3 bundles as it led to
   issues in Tracktion Waveform, Reason and other DAWs
 - Removed clicks when changing presets while playing (fade-in/out
