@@ -117,7 +117,7 @@ void VASTPresetData::reloadPresetArrayThreaded(Component::SafePointer<VASTPreset
 		if (l_PresetArray->category.trim() != "")
 			l_thread_usedCategories.addIfNotAlreadyThere(l_PresetArray->category.trim(), true);
 		if (l_PresetArray->authorname.trim() != "")
-			l_thread_usedTags.addIfNotAlreadyThere(l_PresetArray->authorname.trim(), true);
+			l_thread_usedAuthors.addIfNotAlreadyThere(l_PresetArray->authorname.trim(), true);
 
 		StringArray tags;
 		tags.addTokens(l_PresetArray->freetag, " ,#", "\"");
@@ -142,7 +142,7 @@ void VASTPresetData::reloadPresetArrayThreaded(Component::SafePointer<VASTPreset
 		l_thread_PresetArray.clear();
 		l_thread_usedAuthors.clear();
 		l_thread_usedCategories.clear();
-		l_thread_usedTags.clear();
+		l_thread_usedTags.clear();		
 
 		presetData->m_swapNeeded.store(true);
 	//} else {
@@ -223,7 +223,8 @@ void VASTPresetData::reloadPresetArray(bool synchronous) {
 			l_PresetArray->presetarrayindex = i + 1; //init preset
 			l_PresetArray->userpatchindex = i;
 			l_PresetArray->isFactory = false;
-			l_PresetArray->presetname = l_PresetArray->filename; //temporarily until loaded
+			l_PresetArray->presetname = l_PresetArray->filename.substring(3); //temporarily until loaded
+			l_PresetArray->category = l_PresetArray->filename.dropLastCharacters(l_PresetArray->filename.length() - 3); //temporarily until loaded
 			l_PresetArray->calcID();
 			m_PresetArray.add(l_PresetArray);
 		}
