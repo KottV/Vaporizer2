@@ -10,6 +10,12 @@ if [ "$1" = "ci" ]; then
 fi
 
 cmake -B cmake-build -DCMAKE_BUILD_TYPE=Release
+if [ $? -eq 0 ]; then
+    echo "Configure successful"
+else
+    echo "Configure failed"
+    exit 1
+fi
 cmake --build cmake-build -j`nproc`
 
 if [ $? -eq 0 ]; then
@@ -23,6 +29,7 @@ if [ "$1" = "archive" ] || [ "$2" = "archive" ] ; then
     mkdir -p archive
     tar cfz archive/vaporizer2-LV2-$PLUGIN_VERSION-x86_64.tar.gz -C cmake-build/VASTvaporizer2_artefacts/Release/LV2/ .
     tar cfz archive/vaporizer2-VST3-$PLUGIN_VERSION-x86_64.tar.gz -C cmake-build/VASTvaporizer2_artefacts/Release/VST3/ .
+    tar cfz archive/vaporizer2-CLAP-$PLUGIN_VERSION-x86_64.tar.gz -C cmake-build/VASTvaporizer2_artefacts/Release/CLAP/ .
     tar cfz archive/vaporizer2-Standalone-$PLUGIN_VERSION-x86_64.tar.gz -C cmake-build/VASTvaporizer2_artefacts/Release/Standalone/ .
     tar cfz archive/vaporizer2-data-$PLUGIN_VERSION.tar.gz -C VASTvaporizer Noises Tables Presets
 fi
