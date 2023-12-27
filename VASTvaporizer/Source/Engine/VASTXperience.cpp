@@ -123,30 +123,49 @@ bool CVASTXperience::initializeEngine()
 	return true;
 }
 
-void CVASTXperience::audioProcessLock()
+bool CVASTXperience::audioProcessLock()
 {
+	if (myProcessor->isAudioThread()) { //no lock if called on AudioThread
+		return true;
+	}
+
+	if (m_BlockProcessing.load()) { //it should not be locked already by another task!
+		vassertfalse;
+		return false;
+	}
+		
 	VDBG("Audio process suspended / locked!");
 	//myProcessor->suspendProcessing(true);
 
-	const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
+	//const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
 	for (int bank = 0; bank < 4; bank ++)
 		m_Poly.m_OscBank[bank].m_bWavetableSoftfadeStillRendered.store(false);
 	m_BlockProcessing.store(true);
 	m_BlockProcessingIsBlockedSuccessfully.store(false);
+	return true;
 }
 
-void CVASTXperience::audioProcessUnlock()
+bool CVASTXperience::audioProcessUnlock()
 {
+	if (myProcessor->isAudioThread()) { //no lock if called on AudioThread
+		return true;
+	}
+
+	if (!m_BlockProcessing.load()) { //error if not locked!
+		vassertfalse;
+		return false;
+	}
 	//myProcessor->suspendProcessing(false);
 
-	const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
+	//const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
 	m_BlockProcessing.store(false);
 	m_BlockProcessingIsBlockedSuccessfully.store(false);
 	VDBG("Audio process no longer suspended / unlocked!");
+	return true;
 }
 
 bool CVASTXperience::getBlockProcessingIsBlockedSuccessfully() {
-	const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
+	//const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
 	return m_BlockProcessingIsBlockedSuccessfully.load();
 }
 
@@ -155,7 +174,7 @@ bool CVASTXperience::nonThreadsafeIsBlockedProcessingInfo() {
 }
 
 bool CVASTXperience::getBlockProcessing() {
-	const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
+	//const ScopedLock sl(myProcessor->getCallbackLock()); //this is required here but why
 	return m_BlockProcessing.load();
 }
 
@@ -358,9 +377,9 @@ bool CVASTXperience::processAudioBuffer(AudioSampleBuffer& buffer, MidiBuffer& m
     
     //=================================================================================================
     // Is prepare for play running?
-	if ((m_iFadeOutSamples <= 0) || (m_BlockProcessingIsBlockedSuccessfully)) { //check new - wait for fadeout to complete
-		if (m_BlockProcessing == true) {
-			const ScopedLock sl(myProcessor->getCallbackLock());
+	if ((m_iFadeOutSamples <= 0) || (m_BlockProcessingIsBlockedSuccessfully.load())) { //check new - wait for fadeout to complete
+		if (m_BlockProcessing.load() == true) {
+			//const ScopedLock sl(myProcessor->getCallbackLock());
 			m_BlockProcessingIsBlockedSuccessfully = true;
 			VDBG("BlockProcessingIsBlockedSuccessfully is true!");
 			buffer.clear();
@@ -390,6 +409,13 @@ bool CVASTXperience::processAudioBuffer(AudioSampleBuffer& buffer, MidiBuffer& m
         }
     }
     
+	//Dealloacations
+	//===========================================================================================
+	if (m_Set.m_uTargetMaxPoly != m_Set.m_uMaxPoly) {
+		m_Set.m_uMaxPoly = m_Set.m_uTargetMaxPoly;
+		m_Poly.init();
+	}
+
     if (myProcessor->getActiveEditor() != nullptr) {
         if (myProcessor->isEditorCurrentlyProbablyVisible()) {
             for (int bank = 0; bank < 4; bank++) {
@@ -741,17 +767,41 @@ void CVASTXperience::parameterChanged(const String& parameterID, float newValue)
 	const ScopedLock sl(paramChangeLock);
 
 	if (0 == parameterID.compare("m_uPolyMode")) {
+				
+		if (*m_Set.m_State->m_uPolyMode == static_cast<int>(POLYMODE::MONO))
+			m_Set.m_uTargetMaxPoly = 1;
+		else
+			if (*m_Set.m_State->m_uPolyMode == static_cast<int>(POLYMODE::POLY4))
+				m_Set.m_uTargetMaxPoly = 4;
+			else
+				if (*m_Set.m_State->m_uPolyMode == static_cast<int>(POLYMODE::POLY16))
+					m_Set.m_uTargetMaxPoly = 16;
+				else
+					if (*m_Set.m_State->m_uPolyMode == static_cast<int>(POLYMODE::POLY32))
+						m_Set.m_uTargetMaxPoly = 32;
+					else
+					{
+						vassertfalse;
+						m_Set.m_uTargetMaxPoly = 16;
+					}
+
+		/*
 		for (int i = 0; i < m_Set.m_uMaxPoly; i++)
 			if (m_Poly.m_singleNote[i] != nullptr) //safety check for multiple host threads editing simultaneously
-				m_Poly.m_singleNote[i]->stopNote(0, false); //hard stop
+				m_Poly.m_singleNote[i]->stopNote(0, true); //allow tail off
+			else
+				return;
 
 		bool bWasLocked = nonThreadsafeIsBlockedProcessingInfo();
 		if (!bWasLocked) 
-			audioProcessLock();
+			if (!audioProcessLock()) {
+				myProcessor->setErrorState(myProcessor->vastErrorState::errorState26_maxPolyNotSet);
+				return; 
+			}
 		bool done = false;
 		int counter = 0;
 		while (!done) {
-			if ((counter<30) && (myProcessor->m_bAudioThreadRunning && (!getBlockProcessingIsBlockedSuccessfully()))) {
+			if ((counter<30) && (!myProcessor->lockedAndSafeToDoDeallocatios())) {
 				VDBG("PolyMode - sleep");
 				Thread::sleep(100);
 				counter++;
@@ -783,9 +833,12 @@ void CVASTXperience::parameterChanged(const String& parameterID, float newValue)
 			if (olduMaxPoly != m_Set.m_uMaxPoly)
 				m_Poly.releaseResources();
 			if (!bWasLocked)
-				audioProcessUnlock();
+				if (!audioProcessUnlock()) {
+					myProcessor->setErrorState(myProcessor->vastErrorState::errorState26_maxPolyNotSet);
+				}
 			done = true;
 		}
+		*/
 		return;		
 	}
 

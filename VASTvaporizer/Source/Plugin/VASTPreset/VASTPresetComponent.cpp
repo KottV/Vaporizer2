@@ -844,7 +844,7 @@ void VASTPresetComponent::clearFilter() {
 }
 
 void VASTPresetComponent::reloadPresets() {
-	myProcessor->m_presetData.reloadPresetArray();
+	myProcessor->m_presetData.reloadPresetArray(false);
 	setSearchVector();
 }
 
@@ -1114,6 +1114,7 @@ void VASTPresetComponent::updateAll() {
 	lookAndFeelChanged(); //is in there: m_preset_table_component->updateContent();
 	//setSearchVector();
 	repaint();
+
 }
 
 void VASTPresetComponent::lookAndFeelChanged() {
@@ -1453,7 +1454,8 @@ void VASTPresetComponent::PresetTableComponent::sortOrderChanged(int newSortColu
 		(_processor->getCurrentVASTLookAndFeel()->presetTableSortColumnForward != isForwards)) {
 		_processor->getCurrentVASTLookAndFeel()->presetTableSortColumn = newSortColumnId;
 		_processor->getCurrentVASTLookAndFeel()->presetTableSortColumnForward = isForwards;
-		_processor->writeSettingsToFileAsync();
+		if (_processor->m_initCompleted.load())
+			_processor->writeSettingsToFileAsync();
 	}
 
 	int presetNameColumn = 7; //CAUTION - do not change
